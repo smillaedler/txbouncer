@@ -8,11 +8,10 @@ import time
 
 # === Client ===
 class BouncerClientProtocol(IRCClient):
-    def handleCommand(self, command, prefix, params):
-        IRCClient.handleCommand(self, command, prefix, params)
-        msg = ':%s %s %s' % (prefix, command, ' '.join(params)) if prefix else '%s %s' % (command, ' '.join(params))
-        self.factory.in_buffer.append({'time':time.time(),'message':msg})
-        self.factory.broadcast(msg)
+    def lineReceived(self, line):
+        IRCClient.lineReceived(self, line)
+        self.factory.in_buffer.append({'time':time.time(),'message':line})
+        self.factory.broadcast(line)
 
 class BouncerClient(ClientFactory):
     protocol = BouncerClientProtocol
@@ -47,7 +46,7 @@ class BouncerClient(ClientFactory):
         self.out_buffer = []
     def connect(self, outgoing):
         for m in self.in_buffer:
-            if m.time > last_connect - 150:
+            if 'time' in m and 'message' in m and m.time > last_connect - 150:
                 outgoing.sendLine(m.message)
         self.connections.append(outgoing)
     def disconnect(self, outgoing):
